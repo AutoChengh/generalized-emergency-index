@@ -362,4 +362,4 @@ Open-source conventions used here:
 
 ## License
 
-Before publishing the repository, add a `LICENSE` file. MIT, BSD-3-Clause, and Apache-2.0 are common choices for research software.
+This project is released under the MIT License. See [LICENSE](LICENSE) for details.
