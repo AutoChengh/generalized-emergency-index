@@ -1,8 +1,8 @@
 # GEI
 
-GEI is a Python toolkit for computing the Generalized Emergency Index between two road users. It supports both single-frame calculation from 14 numeric state parameters and frame-by-frame CSV enrichment.
+GEI is a Python toolkit for computing the Generalized Emergency Index (GEI) for pairs of interacting road users. It supports single-frame computation from 14 state parameters and frame-by-frame processing for trajectory CSVs.
 
-GIF visualization is included as a bonus tool for inspecting GEI dynamics in traffic-conflict cases.
+An optional GIF visualization utility is provided for inspecting the temporal evolution of GEI in traffic-conflict cases.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ GIF visualization is included as a bonus tool for inspecting GEI dynamics in tra
 - [Input Definition](#input-definition)
 - [Workflow 1: Single-Frame GEI](#workflow-1-single-frame-gei)
 - [Workflow 2: CSV Frame-by-Frame GEI](#workflow-2-csv-frame-by-frame-gei)
-- [Workflow 3: GIF Visualization Bonus](#workflow-3-gif-visualization-bonus)
+- [Workflow 3: Optional GIF Visualization](#workflow-3-optional-gif-visualization)
 - [Required CSV Columns](#required-csv-columns)
 - [Output Columns](#output-columns)
 - [Python API](#python-api)
@@ -25,25 +25,25 @@ GIF visualization is included as a bonus tool for inspecting GEI dynamics in tra
 
 ## Visual Examples
 
-The GIFs below show GEI-based visualizations for two vehicle and powered-two-wheeler interactions. In each example, the scene view is paired with GEI-related curves so the spatial conflict and metric evolution can be inspected together.
+The GIFs below show GEI-based visualizations for two vehicle--powered two-wheeler interactions. In each example, the scene view is paired with GEI-related curves, allowing the spatial conflict and metric evolution to be inspected together.
 
-**SIND Tianjin Intersection: high-risk interaction**
+**SinD Tianjin Intersection: High-Risk Vehicle--PTW Interaction**
 
-![High-risk vehicle--powered two-wheeler interaction in the SinD Tianjin dataset](assets/demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction.gif)
+![High-risk vehicle--PTW interaction in the SIND Tianjin dataset](assets/demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction.gif)
 
-This case comes from the SIND dataset and captures a strong vehicle and powered-two-wheeler interaction at an intersection in Tianjin, China.
+This case comes from the SinD dataset and captures a high-risk vehicle--PTW interaction at an intersection in Tianjin, China.
 
-**CIMSS-TA Hunan: Powered-Two-Wheeler Cut-In Collision**
+**CIMSS-TA Hunan: PTW Cut-In Collision**
 
 ![CIMSS-TA Hunan powered-two-wheeler cut-in collision](assets/demos/cimss-ta-hunan-ptw-cut-in-collision.gif)
 
-This case comes from the CIMSS-TA database and shows a powered-two-wheeler cut-in event in Hunan, China that leads to a collision.
+This case comes from the CIMSS-TA database and shows a PTW cut-in collision in Hunan, China.
 
 ## Why GEI?
 
 Powered two-wheelers (PTWs), including motorcycles, scooters, and mopeds, are heavily involved in severe road crashes because they are highly exposed, physically vulnerable, and often interact with vehicles in complex mixed-traffic environments.
 
-Vehicle-PTW interactions are not simply small-car interactions. PTWs are less lane-constrained, more maneuverable, and strongly two-dimensional: they can filter, weave, cut in, turn, and make rapid lateral movements. Time-only surrogate safety measures can therefore miss an important part of risk: two situations may have similar time urgency but require very different evasive maneuvers.
+Vehicle--PTW interactions cannot be reduced to conventional vehicle--vehicle interactions with smaller body dimensions. PTWs are less lane-constrained and more maneuverable, often exhibiting pronounced two-dimensional motion patterns: they can filter, weave, cut in, turn, and make rapid lateral movements. Purely time-based surrogate safety measures may therefore miss an important component of risk: two situations may have similar temporal urgency but require substantially different evasive maneuvers.
 
 GEI is built on a simple idea:
 
@@ -51,39 +51,39 @@ GEI is built on a simple idea:
 risk = required evasive maneuver demand / remaining available evasive time
 ```
 
-This makes GEI a geometric-temporal risk measure rather than a purely temporal proximity measure.
+This makes GEI a risk measure that jointly reflects evasive maneuver demand and remaining evasive time, rather than a purely temporal proximity measure.
 
 ## Method at a Glance
 
 GEI combines two interpretable quantities:
 
-- `InDepth`: a geometric proxy for the evasive maneuver demand induced by projected interaction depth.
+- `InDepth`: a geometric proxy for evasive maneuver demand, defined by the projected intrusion depth between the two road users.
 - `TEM`: Time for Evasive Maneuver, the remaining time before extrapolated oriented bodies first overlap.
 
-Instead of trusting one short-term motion extrapolation, GEI evaluates four motion hypotheses:
+Instead of relying on a single short-term motion extrapolation, GEI evaluates four motion hypotheses:
 
 ```text
 CV-CV, CV-CTRV, CTRV-CV, CTRV-CTRV
 ```
 
-where `CV` is constant velocity and `CTRV` is constant turn rate and velocity. The four mode-specific emergency indices are aggregated into the final `GEI`, reducing dependence on any single deterministic motion assumption and better representing PTW turning and lateral maneuverability.
+where `CV` denotes constant velocity and `CTRV` denotes constant turn rate and velocity. The four mode-specific emergency indices are aggregated into the final `GEI`, reducing dependence on any single deterministic motion assumption and improving the representation of PTW turning and lateral maneuverability.
 
 ## Research Highlights
 
-Empirical evaluation on naturalistic vehicle-PTW conflicts and reconstructed crashes shows that GEI:
+Empirical evaluation on naturalistic vehicle--PTW conflicts and reconstructed crashes shows that GEI:
 
-- Captures both risk escalation and risk resolution during vehicle-PTW interactions.
+- Captures both risk escalation and risk resolution during vehicle--PTW interactions.
 - Distinguishes fine-grained risk when temporal proximity is similar but evasive demand differs.
-- Provides stronger early crash-precursor separability at earlier pre-crash windows.
+- Provides stronger crash-precursor separability in early pre-crash windows.
 - Achieves the earliest sustained warnings under percentile-aligned false-alarm constraints.
 - Retains the most crash-outcome-relevant information on average across the pre-crash horizon.
-- Runs at low frame-level cost in serial Python implementation: mean `4.27 ms/frame`, median `3.99 ms/frame` over `175,053` valid frames in the reported evaluation.
+- Runs at low frame-level computational cost in a serial Python implementation: mean `4.27 ms/frame`, median `3.99 ms/frame` over `175,053` valid frames in the reported evaluation.
 
-As a preliminary calibration from the reported datasets, GEI values around `0.68-0.94 m/s` can be interpreted as a data-dependent high-risk transition range for vehicle-PTW interactions. This threshold range is not universal; it should be recalibrated for new datasets, road-user types, and deployment contexts.
+Based on the reported datasets, a preliminary calibration suggests that GEI values around `0.68-0.94 m/s` may indicate a data-dependent high-risk transition range for vehicle--PTW interactions. This threshold range is not universal and should be recalibrated for new datasets, road-user types, and deployment contexts.
 
 ## Quick Start
 
-Run these commands from the repository root to install the package, compute one frame, enrich an example CSV, and optionally generate a GIF.
+From the repository root, run the following commands to install the package, compute GEI for one frame, enrich an example CSV, and optionally generate a GIF.
 
 ```bash
 python -m pip install -e .
@@ -99,12 +99,18 @@ If `python` is not available on Windows, replace it with `py` in the installatio
 
 ## Installation
 
-For normal use:
+For normal use on Windows CMD:
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install -e .
+```
+
+For PowerShell, activate the virtual environment with:
+
+```powershell
+.venv\Scripts\Activate.ps1
 ```
 
 If `python` points to the Windows Store placeholder, use `py`:
@@ -133,7 +139,7 @@ python gif_maker.py --help
 
 GEI is computed from the instantaneous states of two interacting road users. Each road user is represented by seven parameters.
 
-For road user `i` in `{A, B}`, the input is:
+For each road user `i` in `{A, B}`, the input state is:
 
 ```text
 (x_i, y_i, v_i, h_i, L_i, W_i, omega_i)
@@ -141,13 +147,13 @@ For road user `i` in `{A, B}`, the input is:
 
 where:
 
-- `x_i`: global x position `[m]`
-- `y_i`: global y position `[m]`
+- `x_i`: global X position `[m]`
+- `y_i`: global Y position `[m]`
 - `v_i`: speed magnitude `[m/s]`
 - `h_i`: heading angle `[rad]`
 - `L_i`: body length `[m]`
 - `W_i`: body width `[m]`
-- `omega_i`: yaw rate `[rad/s]`
+- `omega_i`: yaw rate (`yaw_rate`) `[rad/s]`
 
 One interaction frame therefore consists of 14 values in total.
 
@@ -165,14 +171,14 @@ xA yA vA hA LA WA yawA xB yB vB hB LB WB yawB
 
 ### Notes on Yaw Rate Input
 
-Some trajectory datasets do not provide yaw rate directly. In that case, yaw rate can be estimated from the historical heading sequence using finite differences, ideally with light smoothing to suppress numerical jitter.
+Some trajectory datasets do not provide yaw rate directly. In that case, yaw rate can be estimated from the historical heading sequence using finite differences, ideally with mild smoothing, such as low-pass filtering, to suppress numerical jitter.
 
 - If a road user does not exhibit noticeable turning behavior, `yaw_rate = 0` is acceptable.
 - If turning is evident, a more accurate yaw-rate estimate is strongly recommended.
 
-### Applicability Beyond Vehicle-PTW Interactions
+### Applicability Beyond Vehicle--PTW Interactions
 
-GEI was motivated by vehicle-PTW interaction risk, but the input definition is road-user agnostic. The same format can be used for vehicle-vehicle interactions and other road-user pairs, such as vehicle-pedestrian or vehicle-cyclist interactions, as long as each participant can be represented by position, speed, heading, yaw rate, length, and width.
+GEI was motivated by vehicle--PTW interaction risk, but its input definition is road-user agnostic. The same format can be used for vehicle--vehicle interactions and other road-user pairs, such as vehicle--pedestrian or vehicle--cyclist interactions, as long as each participant can be represented by position, speed, heading, yaw rate, length, and width.
 
 ## Workflow 1: Single-Frame GEI
 
@@ -232,7 +238,7 @@ gei batch --input-dir examples/data --pattern "*.csv" --output-dir outputs
 
 Generated files whose names start with `GEI_`, `ei_`, or `runtime_` are skipped automatically.
 
-## Workflow 3: GIF Visualization Bonus
+## Workflow 3: Optional GIF Visualization
 
 The visualization tool reads enriched CSV files. It does not recompute GEI.
 
@@ -246,7 +252,7 @@ GIF files are written to:
 gif_visualizations/
 ```
 
-If the CSV name starts with `GEI_SIND`, `gei-gif` uses the optional map asset:
+If the CSV filename starts with `GEI_SIND`, `gei-gif` uses the optional map asset:
 
 ```text
 assets/maps/map_relink_law_save.osm
@@ -277,7 +283,7 @@ The first group is road user A. The `2_` group is road user B.
 
 ## Output Columns
 
-CSV enrichment appends:
+CSV batch processing appends:
 
 ```text
 TEM_CVCV, TEM_CVCT, TEM_CTCV, TEM_CTCT
@@ -287,7 +293,7 @@ InDepth_eff, TEM_eff
 DRAC, DRAC2D, TTC, 2D-TTC, TAdv, ACT, EI, TTC2D, BBox distance (m)
 ```
 
-Use `--core-only` when only GEI-related metrics are needed. The traditional SSM columns remain in the output schema and are filled with default values.
+Use `--core-only` when only GEI-related computations are needed. For schema compatibility, traditional SSM columns are still included in the output and filled with default values.
 
 ## Python API
 
@@ -328,7 +334,7 @@ process_one_csv(
 `-- README.md
 ```
 
-This is the standard `src/` package layout used by many Python open-source projects. Algorithm code lives in `src/gei/core.py`, user-facing computation lives in `src/gei/cli.py`, static visual resources live in `assets/`, and reproducible examples live in `examples/`.
+This is the standard `src/` package layout used by many Python open-source projects. Algorithmic code is implemented in `src/gei/core.py`, user-facing command-line workflows are implemented in `src/gei/cli.py`, static visual resources are stored in `assets/`, and reproducible examples are stored in `examples/`.
 
 ## Development Workflow
 
@@ -352,8 +358,8 @@ Open-source conventions used here:
 - `assets/` contains static resources such as demo GIFs and maps.
 - `examples/` contains small reproducible input data.
 - `tests/` is reserved for smoke tests and regression tests.
-- Generated files go to `outputs/` or `gif_visualizations/` and are ignored by git.
+- Generated files go to `outputs/` or `gif_visualizations/` and are ignored by Git.
 
 ## License
 
-Add a `LICENSE` file before publishing. MIT, BSD-3-Clause, and Apache-2.0 are common choices for research software.
+Before publishing the repository, add a `LICENSE` file. MIT, BSD-3-Clause, and Apache-2.0 are common choices for research software.
