@@ -21,17 +21,19 @@ GIF visualization is included as a bonus tool for inspecting GEI dynamics in tra
 
 ## Visual Examples
 
-The GIFs below show GEI-based visualizations for two vehicle and powered-two-wheeler interactions. In each example, the scene view is paired with GEI-related curves so the spatial conflict and metric evolution can be inspected together.
+The examples below show GEI-based visualizations for two vehicle and powered-two-wheeler interactions. In each example, the scene view is paired with GEI-related curves so the spatial conflict and metric evolution can be inspected together.
+
+The README uses lightweight static previews. Click a preview to open the animated GIF.
 
 **SIND Tianjin Intersection: Strong Interaction**
 
-![SIND Tianjin vehicle and powered-two-wheeler strong interaction](assets/demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction.gif)
+[![SIND Tianjin vehicle and powered-two-wheeler strong interaction](assets/demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction-poster.jpg)](assets/demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction.gif)
 
 This case comes from the SIND dataset and captures a strong vehicle and powered-two-wheeler interaction at an intersection in Tianjin, China.
 
 **CIMSS-TA Hunan: Powered-Two-Wheeler Cut-In Collision**
 
-![CIMSS-TA Hunan powered-two-wheeler cut-in collision](assets/demos/cimss-ta-hunan-ptw-cut-in-collision.gif)
+[![CIMSS-TA Hunan powered-two-wheeler cut-in collision](assets/demos/cimss-ta-hunan-ptw-cut-in-collision-poster.jpg)](assets/demos/cimss-ta-hunan-ptw-cut-in-collision.gif)
 
 This case comes from the CIMSS-TA database and shows a powered-two-wheeler cut-in event in Hunan, China that leads to a collision.
 
