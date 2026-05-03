@@ -16,6 +16,7 @@ An optional GIF visualization utility is provided for inspecting the temporal ev
 - [Workflow 1: Single-Frame GEI](#workflow-1-single-frame-gei)
 - [Workflow 2: CSV Frame-by-Frame GEI](#workflow-2-csv-frame-by-frame-gei)
 - [Workflow 3: Optional GIF Visualization](#workflow-3-optional-gif-visualization)
+- [Workflow 4: Runtime Benchmarking](#workflow-4-runtime-benchmarking)
 - [Required CSV Columns](#required-csv-columns)
 - [Output Columns](#output-columns)
 - [Python API](#python-api)
@@ -90,12 +91,26 @@ python -m pip install -e .
 
 gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
 
-gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_example.csv
+gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
 
-gei-gif --input outputs/GEI_example.csv
+gei-gif --input outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
 ```
 
-If `python` is not available on Windows, replace it with `py` in the installation command.
+Expected single-frame core result:
+
+```text
+GEI = 3.5840
+TEM_eff = 2.2775 s
+InDepth_eff = 8.1623 m
+```
+
+If `python` is not available on Windows, replace it with `py`. If the `gei` or `gei-gif` console commands are not on `PATH`, use the compatibility commands:
+
+```bash
+py main.py frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
+py main.py csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
+py gif_maker.py --input outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
+```
 
 ## Installation
 
@@ -126,6 +141,15 @@ After installation, two commands are available:
 ```bash
 gei --help
 gei-gif --help
+```
+
+On some Windows installations, `pip` may warn that the Python `Scripts` directory is not on `PATH`. In that case, either add that directory to `PATH`, or use the module/script entry points:
+
+```bash
+py -m gei.cli --help
+py -m gei.visualization --help
+py main.py --help
+py gif_maker.py --help
 ```
 
 The root-level scripts are kept for compatibility:
@@ -176,6 +200,8 @@ Some trajectory datasets do not provide yaw rate directly. In that case, yaw rat
 - If a road user does not exhibit noticeable turning behavior, `yaw_rate = 0` is acceptable.
 - If turning is evident, a more accurate yaw-rate estimate is strongly recommended.
 
+Input values should be finite. Speeds should be non-negative, and body length and width must be positive. Heading and yaw rate are expected in radians and radians per second, respectively; convert degree-based datasets before calling GEI.
+
 ### Applicability Beyond Vehicle--PTW Interactions
 
 GEI was motivated by vehicle--PTW interaction risk, but its input definition is road-user agnostic. The same format can be used for vehicle--vehicle interactions and other road-user pairs, such as vehicle--pedestrian or vehicle--cyclist interactions, as long as each participant can be represented by position, speed, heading, yaw rate, length, and width.
@@ -208,6 +234,12 @@ By default, the result includes GEI core metrics plus traditional SSM metrics. T
 gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --core-only --json
 ```
 
+The default prediction settings are `--dt 0.05` seconds and `--horizon 10.0` seconds. These can be changed for sensitivity or runtime studies:
+
+```bash
+gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --dt 0.1 --horizon 8.0 --json
+```
+
 ## Workflow 2: CSV Frame-by-Frame GEI
 
 Use this workflow when each row in a CSV is one frame and you want GEI appended to every row.
@@ -227,7 +259,7 @@ examples/data/GEI_SIND_Tianjin_8_6_1_180_181.csv
 For a cleaner workflow, write generated files to an output folder:
 
 ```bash
-gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_example.csv
+gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
 ```
 
 To process all raw CSV files in a directory:
@@ -238,12 +270,14 @@ gei batch --input-dir examples/data --pattern "*.csv" --output-dir outputs
 
 Generated files whose names start with `GEI_`, `ei_`, or `runtime_` are skipped automatically.
 
+Use `--skip-existing` to avoid overwriting existing generated CSVs. Use `--decimals N` to control output rounding, or `--no-round` to keep full floating-point precision.
+
 ## Workflow 3: Optional GIF Visualization
 
 The visualization tool reads enriched CSV files. It does not recompute GEI.
 
 ```bash
-gei-gif --input outputs/GEI_example.csv
+gei-gif --input outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
 ```
 
 GIF files are written to:
@@ -257,6 +291,25 @@ If the CSV filename starts with `GEI_SIND`, `gei-gif` uses the optional map asse
 ```text
 assets/maps/map_relink_law_save.osm
 ```
+
+If the same SIND data are saved as a generic name such as `GEI_example.csv`, the map background is not enabled. Visualization options can be adjusted from the command line:
+
+```bash
+gei-gif --input outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv --time-range 0 1 --frame-step 1 --gei-max 2.0 --output-dir gif_visualizations
+```
+
+Use `--skip-gif` to validate that an enriched CSV can be read without spending time rendering the GIF.
+
+## Workflow 4: Runtime Benchmarking
+
+Use `benchmark` when measuring computational cost. This command reads raw CSV files, computes the metrics repeatedly, and does not write output CSVs.
+
+```bash
+gei benchmark --input-dir examples/data --pattern "*.csv" --repeat 5
+gei benchmark --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --repeat 10 --core-only
+```
+
+The summary reports Python, NumPy, and pandas versions plus mean, median, p90, p95, and p99 milliseconds per successful frame. Benchmark results depend on hardware, Python version, `--dt`, `--horizon`, and whether traditional SSM metrics are included.
 
 ## Required CSV Columns
 
@@ -295,6 +348,13 @@ DRAC, DRAC2D, TTC, 2D-TTC, TAdv, ACT, EI, TTC2D, BBox distance (m)
 
 Use `--core-only` when only GEI-related computations are needed. For schema compatibility, traditional SSM columns are still included in the output and filled with default values.
 
+Important output notes:
+
+- In `--core-only` mode, traditional SSM columns such as `DRAC`, `TTC`, `ACT`, and `BBox distance (m)` are placeholders, not computed metrics.
+- JSON output represents non-finite values as strings: `"inf"`, `"-inf"`, and `"nan"`.
+- `TTC2D` follows the two-dimensional TTC implementation from Yiru Jiao's `Two-Dimensional-Time-To-Collision` repository.
+- `2D-TTC` refers to the method proposed in *Modeling driver's evasive behavior during safety-critical lane changes: Two-dimensional time-to-collision and deep reinforcement learning*. In the code, this column is normalized from the internal `D2TTC` key for output-schema readability.
+
 ## Python API
 
 ```python
@@ -308,7 +368,7 @@ print(result["GEI"])
 
 process_one_csv(
     "examples/data/SIND_Tianjin_8_6_1_180_181.csv",
-    output_path="outputs/GEI_example.csv",
+    output_path="outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv",
 )
 ```
 
@@ -341,15 +401,17 @@ This is the standard `src/` package layout used by many Python open-source proje
 Install in editable mode:
 
 ```bash
-python -m pip install -e .
+python -m pip install -e ".[dev]"
 ```
 
 Run smoke checks:
 
 ```bash
 python -m py_compile src/gei/cli.py src/gei/core.py src/gei/visualization.py main.py gif_maker.py
+python -m pytest
 gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
-gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_example.csv
+gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
+gei benchmark --input-dir examples/data --pattern "*.csv" --repeat 3 --core-only
 ```
 
 Open-source conventions used here:
