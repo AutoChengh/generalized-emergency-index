@@ -27,9 +27,9 @@ GIF visualization is included as a bonus tool for inspecting GEI dynamics in tra
 
 The GIFs below show GEI-based visualizations for two vehicle and powered-two-wheeler interactions. In each example, the scene view is paired with GEI-related curves so the spatial conflict and metric evolution can be inspected together.
 
-**SIND Tianjin Intersection: Strong Interaction**
+**SIND Tianjin Intersection: high-risk interaction**
 
-![SIND Tianjin vehicle and powered-two-wheeler strong interaction](assets/demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction.gif)
+![High-risk vehicle--powered two-wheeler interaction in the SinD Tianjin dataset](assets/demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction.gif)
 
 This case comes from the SIND dataset and captures a strong vehicle and powered-two-wheeler interaction at an intersection in Tianjin, China.
 
