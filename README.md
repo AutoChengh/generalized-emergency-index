@@ -28,11 +28,11 @@ An optional GIF visualization utility is provided for inspecting the temporal ev
 
 The GIFs below show GEI-based visualizations for two vehicle--powered two-wheeler (PTW) interactions. In each example, the scene view is paired with GEI-related curves, allowing the spatial conflict and metric evolution to be inspected together.
 
-**SinD Tianjin Intersection: High-Risk Vehicle--PTW Interaction**
+**SIND Tianjin Intersection: High-Risk Vehicle--PTW Interaction**
 
 ![High-risk vehicle--PTW interaction in the SIND Tianjin dataset](assets/demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction.gif)
 
-This case comes from the SinD dataset and captures a high-risk vehicle--PTW interaction at an intersection in Tianjin, China.
+This case comes from the SIND dataset and captures a high-risk vehicle--PTW interaction at an intersection in Tianjin, China.
 
 **CIMSS-TA Hunan: PTW Cut-In Collision**
 
