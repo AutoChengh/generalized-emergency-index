@@ -1,14 +1,18 @@
 # GEI
 
-GEI is a Python toolkit for computing the Generalized Encroachment Index between two road users. It supports both single-frame calculation from 14 numeric state parameters and frame-by-frame CSV enrichment.
+GEI is a Python toolkit for computing the Generalized Emergency Index between two road users. It supports both single-frame calculation from 14 numeric state parameters and frame-by-frame CSV enrichment.
 
 GIF visualization is included as a bonus tool for inspecting GEI dynamics in traffic-conflict cases.
 
 ## Table of Contents
 
 - [Visual Examples](#visual-examples)
+- [Why GEI?](#why-gei)
+- [Method at a Glance](#method-at-a-glance)
+- [Research Highlights](#research-highlights)
 - [Quick Start](#quick-start)
 - [Installation](#installation)
+- [Input Definition](#input-definition)
 - [Workflow 1: Single-Frame GEI](#workflow-1-single-frame-gei)
 - [Workflow 2: CSV Frame-by-Frame GEI](#workflow-2-csv-frame-by-frame-gei)
 - [Workflow 3: GIF Visualization Bonus](#workflow-3-gif-visualization-bonus)
@@ -35,6 +39,48 @@ This case comes from the SIND dataset and captures a strong vehicle and powered-
 
 This case comes from the CIMSS-TA database and shows a powered-two-wheeler cut-in event in Hunan, China that leads to a collision.
 
+## Why GEI?
+
+Powered two-wheelers (PTWs), including motorcycles, scooters, and mopeds, are heavily involved in severe road crashes because they are highly exposed, physically vulnerable, and often interact with vehicles in complex mixed-traffic environments.
+
+Vehicle-PTW interactions are not simply small-car interactions. PTWs are less lane-constrained, more maneuverable, and strongly two-dimensional: they can filter, weave, cut in, turn, and make rapid lateral movements. Time-only surrogate safety measures can therefore miss an important part of risk: two situations may have similar time urgency but require very different evasive maneuvers.
+
+GEI is built on a simple idea:
+
+```text
+risk = required evasive maneuver demand / remaining available evasive time
+```
+
+This makes GEI a geometric-temporal risk measure rather than a purely temporal proximity measure.
+
+## Method at a Glance
+
+GEI combines two interpretable quantities:
+
+- `InDepth`: a geometric proxy for the evasive maneuver demand induced by projected interaction depth.
+- `TEM`: Time for Evasive Maneuver, the remaining time before extrapolated oriented bodies first overlap.
+
+Instead of trusting one short-term motion extrapolation, GEI evaluates four motion hypotheses:
+
+```text
+CV-CV, CV-CTRV, CTRV-CV, CTRV-CTRV
+```
+
+where `CV` is constant velocity and `CTRV` is constant turn rate and velocity. The four mode-specific emergency indices are aggregated into the final `GEI`, reducing dependence on any single deterministic motion assumption and better representing PTW turning and lateral maneuverability.
+
+## Research Highlights
+
+Empirical evaluation on naturalistic vehicle-PTW conflicts and reconstructed crashes shows that GEI:
+
+- Captures both risk escalation and risk resolution during vehicle-PTW interactions.
+- Distinguishes fine-grained risk when temporal proximity is similar but evasive demand differs.
+- Provides stronger early crash-precursor separability at earlier pre-crash windows.
+- Achieves the earliest sustained warnings under percentile-aligned false-alarm constraints.
+- Retains the most crash-outcome-relevant information on average across the pre-crash horizon.
+- Runs at low frame-level cost in serial Python implementation: mean `4.27 ms/frame`, median `3.99 ms/frame` over `175,053` valid frames in the reported evaluation.
+
+As a preliminary calibration from the reported datasets, GEI values around `0.68-0.94 m/s` can be interpreted as a data-dependent high-risk transition range for vehicle-PTW interactions. This threshold range is not universal; it should be recalibrated for new datasets, road-user types, and deployment contexts.
+
 ## Quick Start
 
 Run these commands from the repository root to install the package, compute one frame, enrich an example CSV, and optionally generate a GIF.
@@ -42,7 +88,7 @@ Run these commands from the repository root to install the package, compute one 
 ```bash
 python -m pip install -e .
 
-gei frame --values 504.0451 -271.9787 22.9184 2.5530 0.0 17.0237 2.5907 501.8724 -278.5692 24.9702 2.4877 0.0 16.3289 2.5973 --json
+gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
 
 gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_example.csv
 
@@ -83,43 +129,77 @@ python main.py --help
 python gif_maker.py --help
 ```
 
-## Workflow 1: Single-Frame GEI
+## Input Definition
 
-Use this workflow when you already have one frame with two road users.
+GEI is computed from the instantaneous states of two interacting road users. Each road user is represented by seven parameters.
 
-The 14 input parameters must be ordered as:
+For road user `i` in `{A, B}`, the input is:
 
 ```text
-xA yA vA hA yawA lA wA xB yB vB hB yawB lB wB
+(x_i, y_i, v_i, h_i, L_i, W_i, omega_i)
 ```
 
 where:
 
+- `x_i`: global x position `[m]`
+- `y_i`: global y position `[m]`
+- `v_i`: speed magnitude `[m/s]`
+- `h_i`: heading angle `[rad]`
+- `L_i`: body length `[m]`
+- `W_i`: body width `[m]`
+- `omega_i`: yaw rate `[rad/s]`
+
+One interaction frame therefore consists of 14 values in total.
+
+Command-line order for each road user:
+
 ```text
-x, y    position in meters
-v       speed in meters per second
-h       heading in radians
-yaw     yaw rate in radians per second
-l, w    object length and width in meters
-A, B    the two road users
+x y speed heading length width yaw_rate
+```
+
+Full command-line order:
+
+```text
+xA yA vA hA LA WA yawA xB yB vB hB LB WB yawB
+```
+
+### Notes on Yaw Rate Input
+
+Some trajectory datasets do not provide yaw rate directly. In that case, yaw rate can be estimated from the historical heading sequence using finite differences, ideally with light smoothing to suppress numerical jitter.
+
+- If a road user does not exhibit noticeable turning behavior, `yaw_rate = 0` is acceptable.
+- If turning is evident, a more accurate yaw-rate estimate is strongly recommended.
+
+### Applicability Beyond Vehicle-PTW Interactions
+
+GEI was motivated by vehicle-PTW interaction risk, but the input definition is road-user agnostic. The same format can be used for vehicle-vehicle interactions and other road-user pairs, such as vehicle-pedestrian or vehicle-cyclist interactions, as long as each participant can be represented by position, speed, heading, yaw rate, length, and width.
+
+## Workflow 1: Single-Frame GEI
+
+Use this workflow when you already have one frame with two road users.
+
+The 14 input parameters follow the order defined in [Input Definition](#input-definition):
+
+```text
+xA yA vA hA LA WA yawA xB yB vB hB LB WB yawB
 ```
 
 Example:
 
 ```bash
-gei frame --values 504.0451 -271.9787 22.9184 2.5530 0.0 17.0237 2.5907 501.8724 -278.5692 24.9702 2.4877 0.0 16.3289 2.5973 --json
+gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
 ```
 
 Equivalent compatibility command:
 
 ```bash
-python main.py frame --values 504.0451 -271.9787 22.9184 2.5530 0.0 17.0237 2.5907 501.8724 -278.5692 24.9702 2.4877 0.0 16.3289 2.5973 --json
+python main.py frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
 ```
 
 By default, the result includes GEI core metrics plus traditional SSM metrics. To compute only the GEI core metrics:
 
 ```bash
-gei frame --values 504.0451 -271.9787 22.9184 2.5530 0.0 17.0237 2.5907 501.8724 -278.5692 24.9702 2.4877 0.0 16.3289 2.5973 --core-only --json
+gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --core-only --json
 ```
 
 ## Workflow 2: CSV Frame-by-Frame GEI
@@ -215,8 +295,8 @@ Use `--core-only` when only GEI-related metrics are needed. The traditional SSM 
 from gei import compute_single_frame, process_one_csv
 
 result = compute_single_frame(
-    504.0451, -271.9787, 22.9184, 2.5530, 0.0, 17.0237, 2.5907,
-    501.8724, -278.5692, 24.9702, 2.4877, 0.0, 16.3289, 2.5973,
+    504.0451, -271.9787, 22.9184, 2.5530, 17.0237, 2.5907, 0.0,
+    501.8724, -278.5692, 24.9702, 2.4877, 16.3289, 2.5973, 0.0,
 )
 print(result["GEI"])
 
@@ -262,7 +342,7 @@ Run smoke checks:
 
 ```bash
 python -m py_compile src/gei/cli.py src/gei/core.py src/gei/visualization.py main.py gif_maker.py
-gei frame --values 504.0451 -271.9787 22.9184 2.5530 0.0 17.0237 2.5907 501.8724 -278.5692 24.9702 2.4877 0.0 16.3289 2.5973 --json
+gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
 gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_example.csv
 ```
 

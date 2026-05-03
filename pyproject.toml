@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gei"
 version = "0.1.0"
-description = "Generalized Encroachment Index computation for two-agent traffic conflicts."
+description = "Generalized Emergency Index computation for two-agent traffic conflicts."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [

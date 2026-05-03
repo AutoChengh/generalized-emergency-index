@@ -41,16 +41,16 @@ FRAME_VALUE_NAMES = [
     "yA",
     "vA",
     "hA",
-    "yawA",
     "lA",
     "wA",
+    "yawA",
     "xB",
     "yB",
     "vB",
     "hB",
-    "yawB",
     "lB",
     "wB",
+    "yawB",
 ]
 
 REQUIRED_COLS = [
@@ -234,19 +234,23 @@ def compute_single_frame(
     yA,
     vA,
     hA,
-    yawA,
     lA,
     wA,
+    yawA,
     xB,
     yB,
     vB,
     hB,
-    yawB,
     lB,
     wB,
+    yawB,
     compute_extra_metrics=True,
 ):
-    """Compute GEI and related metrics for one frame with 14 state parameters."""
+    """Compute metrics for one frame.
+
+    Public argument order for each road user is:
+    x, y, speed, heading, length, width, yaw_rate.
+    """
     core_raw = compute_4mode_gei_core_metrics(
         xA=xA,
         yA=yA,
@@ -367,16 +371,16 @@ def row_to_frame_values(row_values):
         yA,
         vA,
         hA,
-        yawA,
         lA,
         wA,
+        yawA,
         xB,
         yB,
         vB,
         hB,
-        yawB,
         lB,
         wB,
+        yawB,
     ]
 
 
@@ -614,7 +618,7 @@ def build_argparser():
         required=True,
         help=(
             "Values in order: "
-            "xA yA vA hA yawA lA wA xB yB vB hB yawB lB wB."
+            "xA yA vA hA lA wA yawA xB yB vB hB lB wB yawB."
         ),
     )
     frame_parser.add_argument(
