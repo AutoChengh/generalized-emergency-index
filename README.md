@@ -25,7 +25,7 @@ An optional GIF visualization utility is provided for inspecting the temporal ev
 
 ## Visual Examples
 
-The GIFs below show GEI-based visualizations for two vehicle--powered two-wheeler interactions. In each example, the scene view is paired with GEI-related curves, allowing the spatial conflict and metric evolution to be inspected together.
+The GIFs below show GEI-based visualizations for two vehicle--powered two-wheeler (PTW) interactions. In each example, the scene view is paired with GEI-related curves, allowing the spatial conflict and metric evolution to be inspected together.
 
 **SinD Tianjin Intersection: High-Risk Vehicle--PTW Interaction**
 
