@@ -1,17 +1,23 @@
-"""GEI computation package."""
+"""Generalized Emergency Index: one risk functional, multiple future generators."""
 
-__all__ = ["compute_single_frame", "process_one_csv"]
+from ._solver import Trajectory, TrajectoryEIResult, compute_trajectory_ei
+from .api import FutureEvaluation, GEIResult, compute_gei, compute_gei_from_futures
+from .futures import JointFuture, independent_joint_futures
+from .models import ActorState, BodySize, NumericalError, SolverOptions
 
-
-def compute_single_frame(*args, **kwargs):
-    """Compute GEI and related metrics for one frame."""
-    from .cli import compute_single_frame as _compute_single_frame
-
-    return _compute_single_frame(*args, **kwargs)
-
-
-def process_one_csv(*args, **kwargs):
-    """Compute GEI and related metrics for every frame in one CSV file."""
-    from .cli import process_one_csv as _process_one_csv
-
-    return _process_one_csv(*args, **kwargs)
+__version__ = "0.2.0.dev0"
+__all__ = [
+    "ActorState",
+    "BodySize",
+    "Trajectory",
+    "JointFuture",
+    "SolverOptions",
+    "NumericalError",
+    "TrajectoryEIResult",
+    "FutureEvaluation",
+    "GEIResult",
+    "compute_gei",
+    "compute_gei_from_futures",
+    "compute_trajectory_ei",
+    "independent_joint_futures",
+]

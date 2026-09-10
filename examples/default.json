@@ -1,0 +1,6 @@
+{
+  "mode": "states",
+  "horizon": 3.0,
+  "actor_a": {"x": 0.0, "y": 0.0, "speed": 1.0, "heading": 0.0, "yaw_rate": 0.0, "length": 2.0, "width": 2.0},
+  "actor_b": {"x": 5.0, "y": 0.0, "speed": 0.0, "heading": 0.0, "yaw_rate": 0.0, "length": 2.0, "width": 2.0}
+}

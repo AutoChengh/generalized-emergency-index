@@ -1,28 +1,39 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "gei"
-version = "0.1.0"
-description = "Generalized Emergency Index computation for two-agent traffic conflicts."
+version = "0.2.0.dev0"
+description = "Generalized Emergency Index over weighted future trajectories."
 readme = "README.md"
-requires-python = ">=3.9"
-dependencies = [
-    "numpy>=1.23",
-    "pandas>=1.5",
-    "matplotlib>=3.7",
-    "Pillow>=9.5",
-]
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Hao Cheng"}]
+dependencies = ["numpy>=1.23", "scipy>=1.10"]
+
+[project.optional-dependencies]
+plot = ["matplotlib>=3.7"]
+experiment = ["scikit-learn>=1.2"]
+dev = ["pytest>=7", "ruff>=0.9", "build>=1", "scikit-learn>=1.2", "matplotlib>=3.7"]
+
+[project.urls]
+Repository = "https://github.com/AutoChengh/generalized-emergency-index"
 
 [project.scripts]
 gei = "gei.cli:main"
-gei-gif = "gei.visualization:main"
-
-[project.optional-dependencies]
-dev = [
-    "pytest",
-]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
