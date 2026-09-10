@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "Please cite the software version used and the accompanying GEI manuscript."
+type: software
+title: "Generalized Emergency Index"
+authors:
+  - family-names: Cheng
+    given-names: Hao
+version: 0.2.0.dev0
+repository-code: "https://github.com/AutoChengh/generalized-emergency-index"
+license: MIT

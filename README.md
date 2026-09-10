@@ -1,427 +1,281 @@
-# GEI
+# Generalized Emergency Index (GEI)
 
-GEI is a Python toolkit for computing the Generalized Emergency Index (GEI) for pairs of interacting road users. It supports single-frame computation from 14 state parameters and frame-by-frame processing for trajectory CSVs.
+GEI quantifies the risk of an interaction between two oriented road users over
+one or more possible future trajectories. It combines **how soon their bodies
+contact** with **the projected intrusion associated with that future**.
 
-An optional GIF visualization utility is provided for inspecting the temporal evolution of GEI in traffic-conflict cases.
+The library separates future generation from risk evaluation:
 
-## Table of Contents
+- **Current states → GEI:** use the default CV/CTRV motion hypotheses.
+- **Predicted or planned trajectories → GEI:** supply your own weighted futures.
+  EMP-D and QCNet output adapters are included.
+- Both routes use the **same contact, InDepth and EI solver**.
 
-- [Visual Examples](#visual-examples)
-- [Why GEI?](#why-gei)
-- [Method at a Glance](#method-at-a-glance)
-- [Research Highlights](#research-highlights)
-- [Quick Start](#quick-start)
-- [Installation](#installation)
-- [Input Definition](#input-definition)
-- [Workflow 1: Single-Frame GEI](#workflow-1-single-frame-gei)
-- [Workflow 2: CSV Frame-by-Frame GEI](#workflow-2-csv-frame-by-frame-gei)
-- [Workflow 3: Optional GIF Visualization](#workflow-3-optional-gif-visualization)
-- [Workflow 4: Runtime Benchmarking](#workflow-4-runtime-benchmarking)
-- [Required CSV Columns](#required-csv-columns)
-- [Output Columns](#output-columns)
-- [Python API](#python-api)
-- [Project Layout](#project-layout)
-- [Development Workflow](#development-workflow)
-- [License](#license)
+[Install](#install) · [Quick example](#a-small-example-you-can-check-by-hand) ·
+[Supplementary material](paper/supplementary_material.pdf) ·
+[Paper-to-code guide](paper/reproducibility.md) ·
+[Numerical conventions](docs/numerics.md) ·
+[Same-future PC/GEI experiment](experiments/README.md)
 
-## Visual Examples
+## Framework overview
 
-The GIFs below show GEI-based visualizations for two vehicle--powered two-wheeler (PTW) interactions. In each example, the scene view is paired with GEI-related curves, allowing the spatial conflict and metric evolution to be inspected together.
+[![GEI framework: trajectory-conditioned risk evaluation followed by weighted multi-trajectory aggregation](docs/assets/gei_framework.png)](docs/assets/gei_framework.png)
 
-**SIND Tianjin Intersection: High-Risk Vehicle--PTW Interaction**
+GEI evaluates each prescribed joint future, then aggregates the resulting EI
+values using their weights. The future set can come from default CV/CTRV motion
+hypotheses or an external predictor or planner. Click the diagram for full size.
 
-![High-risk vehicle--PTW interaction in the SIND Tianjin dataset](assets/demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction.gif)
+## Visual examples
 
-This case comes from the SIND dataset and captures a high-risk vehicle--PTW interaction at an intersection in Tianjin, China.
+Two AV2 Sensor cases show **GEI**, **GEI (EMP-D)** and **GEI (QCNet)** with
+synchronized camera views, method-specific trajectories and a shared risk
+history. Both animations play at half speed.
 
-**CIMSS-TA Hunan: PTW Cut-In Collision**
+### AV2S-PTW-0334 — interaction across camera views
 
-![CIMSS-TA Hunan powered-two-wheeler cut-in collision](assets/demos/cimss-ta-hunan-ptw-cut-in-collision.gif)
+Three front-facing cameras keep the PTW visible as it moves between views.
+The three risk histories highlight the same short interaction period, with
+different score magnitudes and peak times.
 
-This case comes from the CIMSS-TA database and shows a PTW cut-in collision in Hunan, China.
+![AV2S-PTW-0334: synchronized three-camera views, GEI trajectories and risk histories](docs/assets/demos/AV2S-PTW-0334_three_method.gif)
 
-## Why GEI?
+AV2 Sensor data © 2021 Argo AI, LLC; adapted under
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+[Source and media notice](docs/assets/demos/MEDIA_NOTICE.md).
 
-Powered two-wheelers (PTWs), including motorcycles, scooters, and mopeds, are heavily involved in severe road crashes because they are highly exposed, physically vulnerable, and often interact with vehicles in complex mixed-traffic environments.
+<details>
+<summary><strong>AV2S-PTW-0275 — expand the second replay: differences in risk magnitude and timing</strong></summary>
 
-Vehicle--PTW interactions cannot be reduced to conventional vehicle--vehicle interactions with smaller body dimensions. PTWs are less lane-constrained and more maneuverable, often exhibiting pronounced two-dimensional motion patterns: they can filter, weave, cut in, turn, and make rapid lateral movements. Purely time-based surrogate safety measures may therefore miss an important component of risk: two situations may have similar temporal urgency but require substantially different evasive maneuvers.
+Front-center imagery and an enlarged PTW view accompany the risk histories.
+The GEI (QCNet) peak occurs approximately 0.30 s before the GEI and GEI (EMP-D)
+peaks in this case.
 
-GEI is built on a simple idea:
+![AV2S-PTW-0275: front-center view, PTW detail, GEI trajectories and risk histories](docs/assets/demos/AV2S-PTW-0275_three_method.gif)
 
-```text
-risk = required evasive maneuver demand / remaining available evasive time
-```
+AV2 Sensor data © 2021 Argo AI, LLC; adapted under
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+[Source and media notice](docs/assets/demos/MEDIA_NOTICE.md).
 
-This makes GEI a risk measure that jointly reflects evasive maneuver demand and remaining evasive time, rather than a purely temporal proximity measure.
+</details>
 
-## Method at a Glance
+These are **archived paper-result replays**, not outputs recomputed with this
+refactored package. Default CV/CTRV futures use a 10 s horizon; EMP-D/QCNet use
+3 s with six modes per actor. The examples illustrate risk evaluation under
+different future hypotheses, not a controlled predictor-accuracy comparison.
+See the [replay conventions](docs/assets/demos/MEDIA_NOTICE.md#replay-conventions).
 
-GEI combines two interpretable quantities:
+### Additional examples: naturalistic interaction and reconstructed collision
 
-- `InDepth`: a geometric proxy for evasive maneuver demand, defined by the projected intrusion depth between the two road users.
-- `TEM`: Time for Evasive Maneuver, the remaining time before extrapolated oriented bodies first overlap.
+These two GIFs are preserved from the earlier public repository. They pair
+scene motion with GEI and other risk-indicator curves. They are **historical
+visualizations**, not results recomputed or validated against the current
+refactored solver; their original in-image labels are retained.
 
-Instead of relying on a single short-term motion extrapolation, GEI evaluates four motion hypotheses:
+<details>
+<summary><strong>SIND Tianjin intersection — expand the naturalistic vehicle–PTW interaction</strong></summary>
 
-```text
-CV-CV, CV-CTRV, CTRV-CV, CTRV-CTRV
-```
+A vehicle–PTW interaction at an intersection in Tianjin, China, from SIND.
 
-where `CV` denotes constant velocity and `CTRV` denotes constant turn rate and velocity. The four mode-specific emergency indices are aggregated into the final `GEI`, reducing dependence on any single deterministic motion assumption and improving the representation of PTW turning and lateral maneuverability.
+![Archived SIND Tianjin vehicle–PTW interaction and risk-indicator histories](docs/assets/legacy_demos/sind-tianjin-intersection-vehicle-ptw-strong-interaction.gif)
 
-## Research Highlights
+[Original source and archive notice](docs/assets/legacy_demos/MEDIA_NOTICE.md).
 
-Empirical evaluation on naturalistic vehicle--PTW conflicts and reconstructed crashes shows that GEI:
+</details>
 
-- Captures both risk escalation and risk resolution during vehicle--PTW interactions.
-- Distinguishes fine-grained risk when temporal proximity is similar but evasive demand differs.
-- Provides stronger crash-precursor separability in early pre-crash windows.
-- Achieves the earliest sustained warnings under percentile-aligned false-alarm constraints.
-- Retains the most crash-outcome-relevant information on average across the pre-crash horizon.
-- Runs at low frame-level computational cost in a serial Python implementation: mean `4.27 ms/frame`, median `3.99 ms/frame` over `175,053` valid frames in the reported evaluation.
+<details>
+<summary><strong>CIMSS-TA Hunan — expand the reconstructed PTW cut-in collision</strong></summary>
 
-Based on the reported datasets, a preliminary calibration suggests that GEI values around `0.68-0.94 m/s` may indicate a data-dependent high-risk transition range for vehicle--PTW interactions. This threshold range is not universal and should be recalibrated for new datasets, road-user types, and deployment contexts.
+A reconstructed PTW cut-in collision in Hunan, China, from CIMSS-TA.
 
-## Quick Start
+![Archived CIMSS-TA Hunan PTW cut-in collision and risk-indicator histories](docs/assets/legacy_demos/cimss-ta-hunan-ptw-cut-in-collision.gif)
 
-From the repository root, run the following commands to install the package, compute GEI for one frame, enrich an example CSV, and optionally generate a GIF.
+[Original source and archive notice](docs/assets/legacy_demos/MEDIA_NOTICE.md).
 
-```bash
-python -m pip install -e .
+</details>
 
-gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
+## Install
 
-gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
+This is the **0.2.0 development version**.
+See [migration notes](docs/migration.md) before replacing the older public code.
 
-gei-gif --input outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
-```
-
-Expected single-frame core result:
-
-```text
-GEI = 3.5840
-TEM_eff = 2.2775 s
-InDepth_eff = 8.1623 m
-```
-
-If `python` is not available on Windows, replace it with `py`. If the `gei` or `gei-gif` console commands are not on `PATH`, use the compatibility commands:
-
-```bash
-py main.py frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
-py main.py csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
-py gif_maker.py --input outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
-```
-
-## Installation
-
-For normal use on Windows CMD:
+Python 3.10 or newer is required. From the repository root:
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
+# Activate: .venv\Scripts\activate on Windows, or source .venv/bin/activate on Linux/macOS
 python -m pip install -e .
 ```
 
-For PowerShell, activate the virtual environment with:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-If `python` points to the Windows Store placeholder, use `py`:
-
-```bash
-py -m venv .venv
-.venv\Scripts\activate
-py -m pip install -e .
-```
-
-After installation, two commands are available:
-
-```bash
-gei --help
-gei-gif --help
-```
-
-On some Windows installations, `pip` may warn that the Python `Scripts` directory is not on `PATH`. In that case, either add that directory to `PATH`, or use the module/script entry points:
-
-```bash
-py -m gei.cli --help
-py -m gei.visualization --help
-py main.py --help
-py gif_maker.py --help
-```
-
-The root-level scripts are kept for compatibility:
-
-```bash
-python main.py --help
-python gif_maker.py --help
-```
-
-## Input Definition
-
-GEI is computed from the instantaneous states of two interacting road users. Each road user is represented by seven parameters.
-
-For each road user `i` in `{A, B}`, the input state is:
-
-```text
-(x_i, y_i, v_i, h_i, L_i, W_i, omega_i)
-```
-
-where:
-
-- `x_i`: global X position `[m]`
-- `y_i`: global Y position `[m]`
-- `v_i`: speed magnitude `[m/s]`
-- `h_i`: heading angle `[rad]`
-- `L_i`: body length `[m]`
-- `W_i`: body width `[m]`
-- `omega_i`: yaw rate (`yaw_rate`) `[rad/s]`
-
-One interaction frame therefore consists of 14 values in total.
-
-Command-line order for each road user:
-
-```text
-x y speed heading length width yaw_rate
-```
-
-Full command-line order:
-
-```text
-xA yA vA hA LA WA yawA xB yB vB hB LB WB yawB
-```
-
-### Notes on Yaw Rate Input
-
-Some trajectory datasets do not provide yaw rate directly. In that case, yaw rate can be estimated from the historical heading sequence using finite differences, ideally with mild smoothing, such as low-pass filtering, to suppress numerical jitter.
-
-- If a road user does not exhibit noticeable turning behavior, `yaw_rate = 0` is acceptable.
-- If turning is evident, a more accurate yaw-rate estimate is strongly recommended.
-
-Input values should be finite. Speeds should be non-negative, and body length and width must be positive. Heading and yaw rate are expected in radians and radians per second, respectively; convert degree-based datasets before calling GEI.
-
-### Applicability Beyond Vehicle--PTW Interactions
-
-GEI was motivated by vehicle--PTW interaction risk, but its input definition is road-user agnostic. The same format can be used for vehicle--vehicle interactions and other road-user pairs, such as vehicle--pedestrian or vehicle--cyclist interactions, as long as each participant can be represented by position, speed, heading, yaw rate, length, and width.
-
-## Workflow 1: Single-Frame GEI
-
-Use this workflow when you already have one frame with two road users.
-
-The 14 input parameters follow the order defined in [Input Definition](#input-definition):
-
-```text
-xA yA vA hA LA WA yawA xB yB vB hB LB WB yawB
-```
-
-Example:
-
-```bash
-gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
-```
-
-Equivalent compatibility command:
-
-```bash
-python main.py frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
-```
-
-By default, the result includes GEI core metrics plus traditional SSM metrics. To compute only the GEI core metrics:
-
-```bash
-gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --core-only --json
-```
-
-The default prediction settings are `--dt 0.05` seconds and `--horizon 10.0` seconds. These can be changed for sensitivity or runtime studies:
-
-```bash
-gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --dt 0.1 --horizon 8.0 --json
-```
-
-## Workflow 2: CSV Frame-by-Frame GEI
-
-Use this workflow when each row in a CSV is one frame and you want GEI appended to every row.
-
-Run on one example CSV:
-
-```bash
-gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv
-```
-
-The default output is written beside the input with a `GEI_` prefix:
-
-```text
-examples/data/GEI_SIND_Tianjin_8_6_1_180_181.csv
-```
-
-For a cleaner workflow, write generated files to an output folder:
-
-```bash
-gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
-```
-
-To process all raw CSV files in a directory:
-
-```bash
-gei batch --input-dir examples/data --pattern "*.csv" --output-dir outputs
-```
-
-Generated files whose names start with `GEI_`, `ei_`, or `runtime_` are skipped automatically.
-
-Use `--skip-existing` to avoid overwriting existing generated CSVs. Use `--decimals N` to control output rounding, or `--no-round` to keep full floating-point precision.
-
-## Workflow 3: Optional GIF Visualization
-
-The visualization tool reads enriched CSV files. It does not recompute GEI.
-
-```bash
-gei-gif --input outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
-```
-
-GIF files are written to:
-
-```text
-gif_visualizations/
-```
-
-If the CSV filename starts with `GEI_SIND`, `gei-gif` uses the optional map asset:
-
-```text
-assets/maps/map_relink_law_save.osm
-```
-
-If the same SIND data are saved as a generic name such as `GEI_example.csv`, the map background is not enabled. Visualization options can be adjusted from the command line:
-
-```bash
-gei-gif --input outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv --time-range 0 1 --frame-step 1 --gei-max 2.0 --output-dir gif_visualizations
-```
-
-Use `--skip-gif` to validate that an enriched CSV can be read without spending time rendering the GIF.
-
-## Workflow 4: Runtime Benchmarking
-
-Use `benchmark` when measuring computational cost. This command reads raw CSV files, computes the metrics repeatedly, and does not write output CSVs.
-
-```bash
-gei benchmark --input-dir examples/data --pattern "*.csv" --repeat 5
-gei benchmark --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --repeat 10 --core-only
-```
-
-The summary reports Python, NumPy, and pandas versions plus mean, median, p90, p95, and p99 milliseconds per successful frame. Benchmark results depend on hardware, Python version, `--dt`, `--horizon`, and whether traditional SSM metrics are included.
-
-## Required CSV Columns
-
-Each row must contain these columns:
-
-```text
-Position X (m)
-Position Y (m)
-Velocity (m/s)
-Heading
-Length (m)
-Width (m)
-Yawrate
-2_Position X (m)
-2_Position Y (m)
-2_Velocity (m/s)
-2_Heading
-2_Length (m)
-2_Width (m)
-2_Yawrate
-```
-
-The first group is road user A. The `2_` group is road user B.
-
-## Output Columns
-
-CSV batch processing appends:
-
-```text
-TEM_CVCV, TEM_CVCT, TEM_CTCV, TEM_CTCT
-InDepth_CVCV, InDepth_CVCT_CA, InDepth_CTCV_CA, InDepth_CTCT_CA
-MEI, EI_CVCT_CA, EI_CTCV_CA, EI_CTCT_CA, GEI
-InDepth_eff, TEM_eff
-DRAC, DRAC2D, TTC, 2D-TTC, TAdv, ACT, EI, TTC2D, BBox distance (m)
-```
-
-Use `--core-only` when only GEI-related computations are needed. For schema compatibility, traditional SSM columns are still included in the output and filled with default values.
-
-Important output notes:
-
-- In `--core-only` mode, traditional SSM columns such as `DRAC`, `TTC`, `ACT`, and `BBox distance (m)` are placeholders, not computed metrics.
-- JSON output represents non-finite values as strings: `"inf"`, `"-inf"`, and `"nan"`.
-- `TTC2D` follows the two-dimensional TTC implementation from Yiru Jiao's `Two-Dimensional-Time-To-Collision` repository.
-- `2D-TTC` refers to the method proposed in *Modeling driver's evasive behavior during safety-critical lane changes: Two-dimensional time-to-collision and deep reinforcement learning*. In the code, this column is normalized from the internal `D2TTC` key for output-schema readability.
-
-## Python API
+The core requires NumPy and SciPy only. A GPU, map and neural network are
+**not** needed to run the examples.
+
+## A small example you can check by hand
+
+Consider two synthetic 2 m × 2 m bodies facing along the x-axis:
+
+- A starts at x = 0 m and moves at 1 m/s.
+- B stays at x = 5 m.
+- Over a 3 s horizon, their boundaries first touch at 3 s.
+- Their transverse projected intrusion is 2 m.
+
+Therefore, the trajectory-conditioned EI is **2 / 3 ≈ 0.667 m/s**.
+Because both yaw rates are zero, all four default motion combinations coincide,
+and their weighted average gives the same GEI.
+EI and GEI values below are displayed to three decimal places; calculations
+retain full precision.
 
 ```python
-from gei import compute_single_frame, process_one_csv
+from gei import ActorState, compute_gei
 
-result = compute_single_frame(
-    504.0451, -271.9787, 22.9184, 2.5530, 17.0237, 2.5907, 0.0,
-    501.8724, -278.5692, 24.9702, 2.4877, 16.3289, 2.5973, 0.0,
-)
-print(result["GEI"])
+a = ActorState(x=0, y=0, speed=1, heading=0, yaw_rate=0, length=2, width=2)
+b = ActorState(x=5, y=0, speed=0, heading=0, yaw_rate=0, length=2, width=2)
 
-process_one_csv(
-    "examples/data/SIND_Tianjin_8_6_1_180_181.csv",
-    output_path="outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv",
-)
+result = compute_gei(a, b, horizon=3.0)
+print(f"GEI: {result.gei:.3f} m/s")
+print(result.contact_probability)
+# GEI: 0.667 m/s
+# 1.0
 ```
 
-## Project Layout
+The horizon is part of the calculation: with a 2 s horizon, these bodies have
+no predicted contact, so GEI is zero. This does not mean they are safe forever.
+The example explicitly uses 3 s; omitting `horizon` selects the paper's default
+CV/CTRV setting of 10 s.
 
-```text
-.
-|-- src/gei/
-|   |-- __init__.py
-|   |-- cli.py              # Public CLI and CSV workflow
-|   |-- core.py             # GEI, CTRV, geometry, and SSM kernels
-|   `-- visualization.py    # Optional GIF visualization
-|-- examples/
-|   `-- data/               # Example raw CSV inputs
-|-- assets/
-|   |-- demos/              # README GIF demonstrations
-|   `-- maps/               # Optional map assets for visualization
-|-- tests/                  # Smoke and regression tests
-|-- main.py                 # Compatibility wrapper for gei CLI
-|-- gif_maker.py            # Compatibility wrapper for gei-gif CLI
-|-- pyproject.toml          # Package metadata and console commands
-|-- requirements.txt
-`-- README.md
+## Add uncertainty without changing the risk definition
+
+Now assign A two hypothetical futures: continue moving (weight 0.25) or remain
+at its current position (weight 0.75). B remains stationary in both.
+These are illustrative futures, not a calibrated driving model.
+
+```python
+from gei import JointFuture, Trajectory, compute_gei_from_futures
+
+times = [0.0, 3.0]  # seconds after the current evaluation instant
+move = Trajectory(times, [[0, 0, 0], [3, 0, 0]])
+stop = Trajectory(times, [[0, 0, 0], [0, 0, 0]])
+other = Trajectory(times, [[5, 0, 0], [5, 0, 0]])
+
+futures = [
+    JointFuture(move, other, weight=0.25, label="continue"),
+    JointFuture(stop, other, weight=0.75, label="stop"),
+]
+result = compute_gei_from_futures(futures, size_a=(2, 2), size_b=(2, 2))
+print(f"GEI: {result.gei:.3f} m/s")  # GEI: 0.167 m/s
+print(result.contact_probability)  # 0.25
+print(f"{result.conditional_ei:.3f} m/s")  # 0.667 m/s
 ```
 
-This is the standard `src/` package layout used by many Python open-source projects. Algorithmic code is implemented in `src/gei/core.py`, user-facing command-line workflows are implemented in `src/gei/cli.py`, static visual resources are stored in `assets/`, and reproducible examples are stored in `examples/`.
+The computation is **GEI = 0.25 × (2 / 3) + 0.75 × 0 ≈ 0.167 m/s**.
+Thus GEI is not a collision probability; it retains the EI of contacting
+futures as well as their probability mass.
 
-## Development Workflow
+## Connect a trajectory predictor or planner
 
-Install in editable mode:
+Supply a common coordinate frame and the current pose followed by future
+`(x, y, heading)` samples. Use `JointFuture` directly when your model supplies
+joint futures and their weights.
+
+If you instead have separate mode probabilities for A and B, use
+`independent_joint_futures(...)` **only under an explicit independence
+assumption**. Interaction-aware marginal forecasts are not automatically joint
+forecasts. The API supports arbitrary mode counts; two six-mode banks yield
+36 joint futures.
+
+The [predictor guide](docs/predictors.md) explains EMP-D/QCNet output shapes,
+coordinate conversion and heading construction. Run the synthetic bridge:
+
+```bash
+python examples/predictor_bridge.py
+```
+
+This example checks the interface without a GPU; it does not run pretrained
+EMP-D or QCNet. Neural inference and dataset-specific input construction remain
+separate from the GEI core.
+
+## Command line
+
+The same examples are supplied as small JSON files:
+
+```bash
+python -m gei.cli examples/default.json
+python -m gei.cli examples/weighted.json
+python -m gei.cli examples/weighted.json --output result.json
+```
+
+The installed `gei` command is equivalent to `python -m gei.cli`.
+Output files are not overwritten. Invalid input or failed numerical evaluation
+returns a nonzero exit status, not a zero-risk result.
+
+## Inputs and outputs
+
+| Quantity | Convention |
+|---|---|
+| Position, body length/width, InDepth | metres |
+| Speed, EI, GEI | metres per second |
+| Time, horizon, TEM | seconds |
+| Heading, yaw rate | radians, radians per second; counterclockwise positive |
+| Body reference | geometric centre of an oriented rectangle |
+| External poses | shape (T, 3), columns x, y, heading; include t = 0 |
+| Future weights | finite, non-negative, sum to one |
+
+External positions and unwrapped headings are interpolated between samples.
+Contact is searched between samples too; sampled non-overlap is not used as a
+final contact gate. The default CV/CTRV paths are evaluated analytically.
+
+`GEIResult` contains the aggregate score, model-implied contact probability,
+conditional mean EI and per-future TEM/InDepth/EI diagnostics. There is no
+unique aggregate TEM or InDepth.
+For default equal-weight CV/CTRV futures, `contact_probability` is the contacting
+fraction of the assumed ensemble, not an empirically calibrated probability.
+
+| Status | Meaning |
+|---|---|
+| `no_contact` | No contact found in the horizon; GEI = 0, conditional EI undefined |
+| `finite_contact` | Positive contact time in at least one positive-weight future |
+| `current_overlap` | Bodies already touch/overlap; GEI = +∞ under the boundary convention |
+| Exception | Invalid input or numerical failure; never interpreted as safe |
+
+The Python API preserves floating-point values. JSON represents infinity as
+the string `"Infinity"` and undefined diagnostics as `null`.
+
+## Interpretation and limitations
+
+GEI evaluates **supplied future hypotheses**, not the likelihood that the
+predictor is correct. A larger score is not a guarantee of a subsequent crash.
+Changing the future bank, weights or horizon changes the score; no universal
+warning threshold is supplied.
+
+This is a two-dimensional rectangular-body risk model, not a vehicle controller,
+an executable planner, or evidence of closed-loop safety. Body headings matter:
+do not replace them blindly with noisy displacement directions.
+
+Read [numerical conventions](docs/numerics.md) for tolerances, fallback
+directions, safety-margin semantics and finite-resolution limitations.
+
+## Reproduce and contribute
+
+| Directory | Responsibility |
+|---|---|
+| `src/gei/` | Shared risk solver, default futures, and predictor-output adapters |
+| `examples/` | Small runnable examples with known answers |
+| `tests/` | Numerical, interface, and experiment-protocol regression tests |
+| `experiments/` | Same-future PC/GEI scoring and paper-aligned AUPRC analysis |
+| `docs/` | Input conventions, numerical limitations, and development instructions |
+| `paper/` | Supplement and equation/experiment correspondence |
+| `tools/` | Source-archive and installed-wheel release checks |
+
+- [Paper-to-code guide](paper/reproducibility.md): equation mapping, experiment
+  protocols, and the boundary between archived results and new computations.
+- [Development guide](docs/development.md): tests, package checks and figure regeneration.
+- [Migration notes](docs/migration.md): changes from the 0.1 API.
 
 ```bash
 python -m pip install -e ".[dev]"
-```
-
-Run smoke checks:
-
-```bash
-python -m py_compile src/gei/cli.py src/gei/core.py src/gei/visualization.py main.py gif_maker.py
 python -m pytest
-gei frame --values 504.0451 -271.9787 22.9184 2.5530 17.0237 2.5907 0.0 501.8724 -278.5692 24.9702 2.4877 16.3289 2.5973 0.0 --json
-gei csv --input examples/data/SIND_Tianjin_8_6_1_180_181.csv --output outputs/GEI_SIND_Tianjin_8_6_1_180_181.csv
-gei benchmark --input-dir examples/data --pattern "*.csv" --repeat 3 --core-only
 ```
 
-Open-source conventions used here:
-
-- `src/` contains importable package code.
-- `assets/` contains static resources such as demo GIFs and maps.
-- `examples/` contains small reproducible input data.
-- `tests/` is reserved for smoke tests and regression tests.
-- Generated files go to `outputs/` or `gif_visualizations/` and are ignored by Git.
-
-## License
-
-This project is released under the MIT License. See [LICENSE](LICENSE) for details.
+Core code uses the [MIT license](LICENSE). Pretrained model weights and raw
+datasets are not included. The AV2-derived demonstration GIFs are distributed
+separately under [CC BY-NC-SA 4.0](docs/assets/demos/MEDIA_NOTICE.md), not MIT.
+Software citation metadata is in [CITATION.cff](CITATION.cff).
