@@ -27,7 +27,7 @@ hypotheses or an external predictor or planner. Click the diagram for full size.
 
 ## Visual examples
 
-Two AV2 Sensor cases show **GEI**, **GEI (EMP-D)** and **GEI (QCNet)** with
+Two cases from the Argoverse 2 (AV2) Sensor Dataset show **GEI**, **GEI (EMP-D)** and **GEI (QCNet)** with
 synchronized camera views, method-specific trajectories and a shared risk
 history. Both animations play at half speed.
 
@@ -39,7 +39,7 @@ different score magnitudes and peak times.
 
 ![AV2S-PTW-0334: synchronized three-camera views, GEI trajectories and risk histories](docs/assets/demos/AV2S-PTW-0334_three_method.gif)
 
-AV2 Sensor data © 2021 Argo AI, LLC; adapted under
+AV2 Sensor Dataset © 2021 Argo AI, LLC; adapted under
 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 [Source and media notice](docs/assets/demos/MEDIA_NOTICE.md).
 
@@ -52,7 +52,7 @@ peaks in this case.
 
 ![AV2S-PTW-0275: front-center view, PTW detail, GEI trajectories and risk histories](docs/assets/demos/AV2S-PTW-0275_three_method.gif)
 
-AV2 Sensor data © 2021 Argo AI, LLC; adapted under
+AV2 Sensor Dataset © 2021 Argo AI, LLC; adapted under
 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 [Source and media notice](docs/assets/demos/MEDIA_NOTICE.md).
 
@@ -276,6 +276,6 @@ python -m pytest
 ```
 
 Core code uses the [MIT license](LICENSE). Pretrained model weights and raw
-datasets are not included. The AV2-derived demonstration GIFs are distributed
+datasets are not included. The demonstration GIFs derived from the AV2 Sensor Dataset are distributed
 separately under [CC BY-NC-SA 4.0](docs/assets/demos/MEDIA_NOTICE.md), not MIT.
 Software citation metadata is in [CITATION.cff](CITATION.cff).
