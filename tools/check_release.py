@@ -39,6 +39,19 @@ def extract_source(archive_path, destination):
     return roots[0]
 
 
+def wheel_import_preamble(installed):
+    """Check canonical paths on both sides, including Windows 8.3 aliases."""
+    return (
+        "import sys; from pathlib import Path; "
+        f"sys.path.insert(0, {str(installed)!r}); "
+        "import gei; "
+        "actual = Path(gei.__file__).resolve(); "
+        f"expected = Path({str(installed)!r}).resolve(); "
+        "assert actual.is_relative_to(expected), "
+        "f'GEI imported from {actual}, expected under {expected}'; "
+    )
+
+
 def check_release(dist):
     dist = Path(dist).resolve()
     wheels, sources = list(dist.glob("gei-*.whl")), list(dist.glob("gei-*.tar.gz"))
@@ -65,12 +78,7 @@ def check_release(dist):
         )
         # -I ignores caller PYTHONPATH/current-directory imports. Dependencies
         # remain available from this interpreter, but GEI must come from the wheel.
-        preamble = (
-            "import sys; from pathlib import Path; "
-            f"sys.path.insert(0, {str(installed)!r}); "
-            "import gei; "
-            f"assert Path(gei.__file__).resolve().is_relative_to(Path({str(installed)!r})); "
-        )
+        preamble = wheel_import_preamble(installed)
         commands = [
             "import pytest; raise SystemExit(pytest.main(['tests', '-q']))",
             "import runpy; sys.argv=['gei', 'examples/default.json']; "
