@@ -50,7 +50,7 @@ it is not a second main-text case figure in this 13-page snapshot.
 
 ## Accompanying supplement
 
-[Supplementary material](supplementary_material.pdf) contains the extended
+[Supplementary material](../supplementary/supplementary_material.pdf) contains the extended
 definitions, consistency proofs, numerical procedures and experimental details.
 It is preserved from the earlier v1.6 manuscript snapshot. PDF SHA-256:
 `dcc0194861529e58254238de3a9ceee40e67422b722168a8170519b8453fcd82`.

@@ -10,7 +10,7 @@ ROOT = Path(__file__).parents[1]
 
 def test_local_markdown_links_resolve():
     documents = [ROOT / "README.md"]
-    for name in ("docs", "paper", "experiments"):
+    for name in ("docs", "supplementary", "experiments"):
         documents.extend((ROOT / name).rglob("*.md"))
     for document in documents:
         text = document.read_text(encoding="utf-8")

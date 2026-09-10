@@ -20,3 +20,6 @@ checkpoints/
 *.pth
 *.pem
 *.key
+
+# Local-only manuscript; never publish with the repository.
+/paper/GEI_TITS_v1_8.pdf

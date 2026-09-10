@@ -2,6 +2,7 @@ include LICENSE CITATION.cff CHANGELOG.md
 recursive-include docs *.md *.svg *.png *.gif
 recursive-include examples *.py *.json
 recursive-include experiments *.py *.md
-recursive-include paper *.md *.pdf
+include supplementary/supplementary_material.pdf
+prune paper
 recursive-include tests *.py
 recursive-include tools *.py

@@ -12,8 +12,8 @@ The library separates future generation from risk evaluation:
 - Both routes use the **same contact, InDepth and EI solver**.
 
 [Install](#install) · [Quick example](#a-small-example-you-can-check-by-hand) ·
-[Supplementary material](paper/supplementary_material.pdf) ·
-[Paper-to-code guide](paper/reproducibility.md) ·
+[Supplementary material](supplementary/supplementary_material.pdf) ·
+[Paper-to-code guide](docs/reproducibility.md) ·
 [Numerical conventions](docs/numerics.md) ·
 [Same-future PC/GEI experiment](experiments/README.md)
 
@@ -262,10 +262,10 @@ directions, safety-margin semantics and finite-resolution limitations.
 | `tests/` | Numerical, interface, and experiment-protocol regression tests |
 | `experiments/` | Same-future PC/GEI scoring and paper-aligned AUPRC analysis |
 | `docs/` | Input conventions, numerical limitations, and development instructions |
-| `paper/` | Supplement and equation/experiment correspondence |
+| `supplementary/` | Supplementary material |
 | `tools/` | Source-archive and installed-wheel release checks |
 
-- [Paper-to-code guide](paper/reproducibility.md): equation mapping, experiment
+- [Paper-to-code guide](docs/reproducibility.md): equation mapping, experiment
   protocols, and the boundary between archived results and new computations.
 - [Development guide](docs/development.md): tests, package checks and figure regeneration.
 - [Migration notes](docs/migration.md): changes from the 0.1 API.

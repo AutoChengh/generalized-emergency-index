@@ -36,11 +36,5 @@ For a solver change, add a deterministic regression case and update numerical
 conventions. Do not tune numerical controls to obtain a desired AUPRC ranking.
 Preserve frozen experiment results and their solver fingerprints.
 
-Regenerate the README illustration:
-
-```bash
-python examples/plot_weighted_example.py
-```
-
-Use the same computed values as the runnable examples. The illustration uses
-Arial when installed and a sans-serif fallback otherwise.
+The local-only manuscript `paper/GEI_TITS_v1_8.pdf` is excluded from Git and
+source distributions. Only the explicitly listed supplementary PDF is packaged.
